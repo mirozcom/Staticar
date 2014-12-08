@@ -62,9 +62,83 @@ namespace Staticar
             a.Path = srcfile;
             a.Slug = Path.GetFileNameWithoutExtension(srcfile);
             a.Created = File.GetCreationTime(srcfile);
-            a.Lines = File.ReadAllLines(srcfile);
+            a.Lines = ParseLineData(File.ReadAllLines(srcfile));
             a.Content = convertToHtmlArticle(a);
             return a;
+        }
+
+        private LineData[] ParseLineData(string[] lines)
+        {
+            var ret = new List<LineData>();
+            var h1regex = @"^#{1}.+$";
+            var hregex = @"^#+.+$";
+            var numberingRegex = @"^\d+\..*";
+            var bulletingRegex = @"^[\*\-].*";
+            bool olstarted = false;
+            bool ulstarted = false;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i].Trim();
+                if (line.Trim() == string.Empty)
+                {
+                    continue;
+                }
+                if (olstarted && !Regex.IsMatch(line, numberingRegex))
+                {
+                    olstarted = false;
+                    ret.Add(new LineData(LineType.OlClose));
+                }
+                if (ulstarted && !Regex.IsMatch(line, bulletingRegex))
+                {
+                    ulstarted = false;
+                    ret.Add(new LineData(LineType.UlClose));
+                }
+                if (Regex.IsMatch(line, h1regex))
+                {
+                    ret.Add(new LineData(LineType.H1, line.Substring(1)));
+                }
+                else if (Regex.IsMatch(line, hregex))
+                {
+                    ret.Add(new LineData(LineType.H2, line.TrimStart('#')));
+                }
+                else if (Regex.IsMatch(line, numberingRegex))
+                {
+                    if (!olstarted)
+                    {
+                        var last = ret.Last();
+                        if (last.Type == LineType.Text && last.Text.EndsWith(":"))
+                        {
+                            last.Type = LineType.ListOver;
+                        }
+                        ret.Add(new LineData(LineType.OlOpen));
+                        olstarted = true;
+                    }
+                    var lionly = Regex.Replace(line, @"^\d+\.", string.Empty).Trim();
+                    ret.Add(new LineData(LineType.Li, lionly));
+                }
+                else if (Regex.IsMatch(line, bulletingRegex))
+                {
+                    if (!ulstarted)
+                    {
+                        var last = ret.Last();
+                        if (last.Type == LineType.Text && last.Text.EndsWith(":"))
+                        {
+                            last.Type = LineType.ListOver;
+                        }
+                        ret.Add(new LineData(LineType.UlOpen));
+                        ulstarted = true;
+                    }
+                    var lionly = Regex.Replace(line, @"^[\*\-]", string.Empty).Trim();
+                    ret.Add(new LineData(LineType.Li, lionly));
+                }
+                else
+                {
+                    ret.Add(new LineData(LineType.Text, line));
+                }
+            }
+            if (olstarted) { ret.Add(new LineData(LineType.OlClose)); }
+            if (ulstarted) { ret.Add(new LineData(LineType.UlClose)); }
+            return ret.ToArray();
         }
 
         private void copyToFtp()
@@ -97,67 +171,55 @@ namespace Staticar
         {
             var sb = new StringBuilder();
             sb.AppendLine("<article>");
-            var h1regex = @"^#{1}.+$";
-            var hregex = @"^#+.+$";
-            var numberingRegex = @"^\d+\..*";
-            var bulletingRegex = @"^[\*\-].*";
-            bool olstarted = false;
-            bool ulstarted = false;
-            foreach (var line in a.Lines)
+
+            for (int i = 0; i < a.Lines.Length; i++)
             {
-                if (line.Trim() == string.Empty)
+                var line = a.Lines[i];
+                switch (line.Type)
                 {
-                    continue;
-                }
-                if (olstarted && !Regex.IsMatch(line, numberingRegex))
-                {
-                    olstarted = false;
-                    sb.AppendLine("</ol>");
-                }
-                if (ulstarted && !Regex.IsMatch(line, bulletingRegex))
-                {
-                    ulstarted = false;
-                    sb.AppendLine("</ul>");
-                }
-                if (Regex.IsMatch(line, h1regex))
-                {
-                    a.Title = line.Substring(1);
-                    var htags = string.Format("<h1><a href='{1}'>{0}</a></h1>", a.Title, a.Slug);
-                    sb.AppendLine(htags);
-                    sb.AppendLine("<div class='undertitle'>" + ToDateString(a.Created) + "</div>");
-                }
-                else if (Regex.IsMatch(line, hregex))
-                {
-                    var htags = hashedToHTags(line);
-                    sb.AppendLine(htags);
-                }
-                else if (Regex.IsMatch(line, numberingRegex))
-                {
-                    if (!olstarted)
-                    {
+                    case LineType.H1:
+                        a.Title = line.Text;
+                        var htags = string.Format("<h1><a href='{1}'>{0}</a></h1>", a.Title, a.Slug);
+                        sb.AppendLine(htags);
+                        sb.AppendLine("<div class='undertitle'>" + ToDateString(a.Created) + "</div>");
+                        break;
+
+                    case LineType.H2:
+                        sb.AppendLine(string.Format("<h2>{0}</h2>", line.Text));
+                        break;
+
+                    case LineType.Li:
+                        sb.AppendLine(string.Format("<li>{0}</li>", line.Text));
+                        break;
+
+                    case LineType.OlOpen:
                         sb.AppendLine("<ol>");
-                        olstarted = true;
-                    }
-                    var lionly = Regex.Replace(line, @"^\d+\.", string.Empty).Trim();
-                    sb.AppendLine(string.Format("<li>{0}</li>", lionly));
-                }
-                else if (Regex.IsMatch(line, bulletingRegex))
-                {
-                    if (!ulstarted)
-                    {
+                        break;
+
+                    case LineType.OlClose:
+                        sb.AppendLine("</ol>");
+                        break;
+
+                    case LineType.UlOpen:
                         sb.AppendLine("<ul>");
-                        ulstarted = true;
-                    }
-                    var lionly = Regex.Replace(line, @"^[\*\-]", string.Empty).Trim();
-                    sb.AppendLine(string.Format("<li>{0}</li>", lionly));
-                }
-                else
-                {
-                    sb.AppendLine(string.Format("<p>{0}</p>", line));
+                        break;
+
+                    case LineType.UlClose:
+                        sb.AppendLine("</ul>");
+                        break;
+
+                    case LineType.Text:
+                        sb.AppendLine(string.Format("<p>{0}</p>", line.Text));
+                        break;
+
+                    case LineType.ListOver:
+                        sb.AppendLine(string.Format("<p class='overlist'>{0}</p>", line.Text));
+                        break;
+
+                    default: throw new Exception("Unknown line type: " + line.Type);
                 }
             }
-            if (olstarted) { sb.AppendLine("</ol>"); }
-            if (ulstarted) { sb.AppendLine("</ul>"); }
+
             sb.AppendLine("</article>");
             return sb.ToString();
         }
@@ -167,15 +229,15 @@ namespace Staticar
             return dateTime.ToString("dd.MM.yyyy");
         }
 
-        private string hashedToHTags(string line)
-        {
-            int index = 0;
-            while (line[index] == '#')
-            {
-                index++;
-            }
-            return string.Format("<h{0}>{1}</h{0}>", index, line.Substring(index));
-        }
+        //private string hashedToHTags(string line)
+        //{
+        //    int index = 0;
+        //    while (line[index] == '#')
+        //    {
+        //        index++;
+        //    }
+        //    return string.Format("<h{0}>{1}</h{0}>", index, line.Substring(index));
+        //}
 
         private string encloseInHtml(ArticleData a, string templatename)
         {
