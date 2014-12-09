@@ -14,7 +14,8 @@ namespace Staticar
         Li,
         UlOpen,
         Text,
-        ListOver
+        ListOver,
+        Reference
     }
 
     internal class LineData

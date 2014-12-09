@@ -74,6 +74,7 @@ namespace Staticar
             var hregex = @"^#+.+$";
             var numberingRegex = @"^\d+\..*";
             var bulletingRegex = @"^[\*\-].*";
+            var refRegex = @"^\[\d+?\].*";
             bool olstarted = false;
             bool ulstarted = false;
             for (int i = 0; i < lines.Length; i++)
@@ -131,6 +132,10 @@ namespace Staticar
                     var lionly = Regex.Replace(line, @"^[\*\-]", string.Empty).Trim();
                     ret.Add(new LineData(LineType.Li, lionly));
                 }
+                else if (Regex.IsMatch(line, refRegex))
+                {
+                    ret.Add(new LineData(LineType.Reference, line));
+                }
                 else
                 {
                     ret.Add(new LineData(LineType.Text, line));
@@ -169,27 +174,30 @@ namespace Staticar
 
         private string convertToHtmlArticle(ArticleData a)
         {
+            var reflines = a.Lines.Where(l => l.Type == LineType.Reference).ToArray();
             var sb = new StringBuilder();
             sb.AppendLine("<article>");
 
             for (int i = 0; i < a.Lines.Length; i++)
             {
                 var line = a.Lines[i];
+                string text = null;
+                if (line.Text != null) { text = markify(line.Text, reflines); }
                 switch (line.Type)
                 {
                     case LineType.H1:
-                        a.Title = line.Text;
-                        var htags = string.Format("<h1><a href='{1}'>{0}</a></h1>", a.Title, a.Slug);
+                        a.Title = text;
+                        var htags = string.Format("<h1>{0}</h1>", toLink(a.Title, a.Slug));
                         sb.AppendLine(htags);
                         sb.AppendLine("<div class='undertitle'>" + ToDateString(a.Created) + "</div>");
                         break;
 
                     case LineType.H2:
-                        sb.AppendLine(string.Format("<h2>{0}</h2>", line.Text));
+                        sb.AppendLine(string.Format("<h2>{0}</h2>", text));
                         break;
 
                     case LineType.Li:
-                        sb.AppendLine(string.Format("<li>{0}</li>", line.Text));
+                        sb.AppendLine(string.Format("<li>{0}</li>", text));
                         break;
 
                     case LineType.OlOpen:
@@ -209,11 +217,15 @@ namespace Staticar
                         break;
 
                     case LineType.Text:
-                        sb.AppendLine(string.Format("<p>{0}</p>", line.Text));
+                        sb.AppendLine(string.Format("<p>{0}</p>", text));
                         break;
 
                     case LineType.ListOver:
-                        sb.AppendLine(string.Format("<p class='overlist'>{0}</p>", line.Text));
+                        sb.AppendLine(string.Format("<p class='overlist'>{0}</p>", text));
+                        break;
+
+                    case LineType.Reference:
+                        //ništa za sad
                         break;
 
                     default: throw new Exception("Unknown line type: " + line.Type);
@@ -222,6 +234,29 @@ namespace Staticar
 
             sb.AppendLine("</article>");
             return sb.ToString();
+        }
+
+        private string markify(string text, LineData[] references)
+        {
+            string linkRegex = @"\[.+?\]\[.+?\]";
+            string refRegex = @"\[.+?\]$";
+
+            while (true)
+            {
+                var match = Regex.Match(text, linkRegex);
+                if (match.Captures.Count == 0) { break; }
+                if (match.Captures.Count > 1) { throw new Exception("HOW??"); }
+                var cap = match.Captures[0];
+                var refUp = Regex.Match(cap.Value, refRegex, RegexOptions.RightToLeft).Captures[0];
+                var refDown = references.First(r => r.Text.StartsWith(refUp.Value, StringComparison.CurrentCultureIgnoreCase));
+                text = text.Replace(cap.Value, toLink(cap.Value.Substring(1, cap.Value.Length - refUp.Length - 2), refDown.Text.Substring(refUp.Length + 2, refDown.Text.Length - refUp.Length - 3).Trim(), true));
+            }
+            return text;
+        }
+
+        private string toLink(string title, string href, bool newWindow = false)
+        {
+            return string.Format("<a href='{1}'{2}>{0}</a>", title, href, newWindow ? " target='{_blank}'" : string.Empty);
         }
 
         private string ToDateString(DateTime dateTime)
