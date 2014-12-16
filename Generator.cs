@@ -249,7 +249,10 @@ namespace Staticar
                 var cap = match.Captures[0];
                 var refUp = Regex.Match(cap.Value, refRegex, RegexOptions.RightToLeft).Captures[0];
                 var refDown = references.First(r => r.Text.StartsWith(refUp.Value, StringComparison.CurrentCultureIgnoreCase));
-                text = text.Replace(cap.Value, toLink(cap.Value.Substring(1, cap.Value.Length - refUp.Length - 2), refDown.Text.Substring(refUp.Length + 2, refDown.Text.Length - refUp.Length - 3).Trim(), true));
+                var title = cap.Value.Substring(1, cap.Value.Length - refUp.Length - 2);
+                var href = refDown.Text.Substring(refUp.Length + 2, refDown.Text.Length - refUp.Length - 3).Trim();
+                var link = toLink(title, href, true);
+                text = text.Replace(cap.Value, link);
             }
             return text;
         }
