@@ -58,14 +58,25 @@ namespace Staticar
                         bytesRead = ftpStream.Read(byteBuffer, 0, bufferSize);
                     }
                 }
-                catch (Exception ex) { Console.WriteLine(ex.ToString()); }
-                /* Resource Cleanup */
-                localFileStream.Close();
-                ftpStream.Close();
-                ftpResponse.Close();
-                ftpRequest = null;
+                catch (Exception ex)
+                {
+                    //Console.WriteLine(ex.ToString());
+                    throw;
+                }
+                finally
+                {
+                    /* Resource Cleanup */
+                    localFileStream.Close();
+                    ftpStream.Close();
+                    ftpResponse.Close();
+                    ftpRequest = null;
+                }
             }
-            catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+            catch (Exception ex)
+            {
+                //Console.WriteLine(ex.ToString());
+                throw;
+            }
             return;
         }
 
@@ -156,7 +167,11 @@ namespace Staticar
                 ftpResponse.Close();
                 ftpRequest = null;
             }
-            catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+            catch (Exception ex)
+            {
+                //Console.WriteLine(ex.ToString());
+                throw;
+            }
             return;
         }
 
@@ -184,7 +199,11 @@ namespace Staticar
                 ftpResponse.Close();
                 ftpRequest = null;
             }
-            catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+            catch (Exception ex)
+            {
+                //Console.WriteLine(ex.ToString());
+                throw;
+            }
             return;
         }
 
@@ -210,7 +229,11 @@ namespace Staticar
                 ftpResponse.Close();
                 ftpRequest = null;
             }
-            catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+            catch (Exception ex)
+            {
+                //Console.WriteLine(ex.ToString());
+                throw;
+            }
             return;
         }
 
@@ -240,18 +263,29 @@ namespace Staticar
                 string fileInfo = null;
                 /* Read the Full Response Stream */
                 try { fileInfo = ftpReader.ReadToEnd(); }
-                catch (Exception ex) { Console.WriteLine(ex.ToString()); }
-                /* Resource Cleanup */
-                ftpReader.Close();
-                ftpStream.Close();
-                ftpResponse.Close();
-                ftpRequest = null;
+                catch (Exception ex)
+                {
+                    //Console.WriteLine(ex.ToString());
+                    throw;
+                }
+                finally
+                {
+                    /* Resource Cleanup */
+                    ftpReader.Close();
+                    ftpStream.Close();
+                    ftpResponse.Close();
+                    ftpRequest = null;
+                }
                 /* Return File Created Date Time */
                 return fileInfo;
             }
-            catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+            catch (Exception ex)
+            {
+                //Console.WriteLine(ex.ToString());
+                throw;
+            }
             /* Return an Empty string Array if an Exception Occurs */
-            return "";
+            //return "";
         }
 
         /* Get the Size of a File */
@@ -280,18 +314,29 @@ namespace Staticar
                 string fileInfo = null;
                 /* Read the Full Response Stream */
                 try { while (ftpReader.Peek() != -1) { fileInfo = ftpReader.ReadToEnd(); } }
-                catch (Exception ex) { Console.WriteLine(ex.ToString()); }
-                /* Resource Cleanup */
-                ftpReader.Close();
-                ftpStream.Close();
-                ftpResponse.Close();
-                ftpRequest = null;
+                catch (Exception ex)
+                {
+                    //Console.WriteLine(ex.ToString());
+                    throw;
+                }
+                finally
+                {
+                    /* Resource Cleanup */
+                    ftpReader.Close();
+                    ftpStream.Close();
+                    ftpResponse.Close();
+                    ftpRequest = null;
+                }
                 /* Return File Size */
                 return fileInfo;
             }
-            catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+            catch (Exception ex)
+            {
+                //Console.WriteLine(ex.ToString());
+                throw;
+            }
             /* Return an Empty string Array if an Exception Occurs */
-            return "";
+            //return "";
         }
 
         /* List Directory Contents File/Folder Name Only */
@@ -320,17 +365,32 @@ namespace Staticar
                 string directoryRaw = null;
                 /* Read Each Line of the Response and Append a Pipe to Each Line for Easy Parsing */
                 try { while (ftpReader.Peek() != -1) { directoryRaw += ftpReader.ReadLine() + "|"; } }
-                catch (Exception ex) { Console.WriteLine(ex.ToString()); }
-                /* Resource Cleanup */
-                ftpReader.Close();
-                ftpStream.Close();
-                ftpResponse.Close();
-                ftpRequest = null;
+                catch (Exception ex)
+                {
+                    //Console.WriteLine(ex.ToString());
+                    throw;
+                }
+                finally
+                {
+                    /* Resource Cleanup */
+                    ftpReader.Close();
+                    ftpStream.Close();
+                    ftpResponse.Close();
+                    ftpRequest = null;
+                }
                 /* Return the Directory Listing as a string Array by Parsing 'directoryRaw' with the Delimiter you Append (I use | in This Example) */
                 try { string[] directoryList = directoryRaw.Split("|".ToCharArray()); return directoryList; }
-                catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+                catch (Exception ex)
+                {
+                    //Console.WriteLine(ex.ToString());
+                    throw;
+                }
             }
-            catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+            catch (Exception ex)
+            {
+                //Console.WriteLine(ex.ToString());
+                throw;
+            }
             /* Return an Empty string Array if an Exception Occurs */
             return new string[] { "" };
         }
@@ -361,19 +421,34 @@ namespace Staticar
                 string directoryRaw = null;
                 /* Read Each Line of the Response and Append a Pipe to Each Line for Easy Parsing */
                 try { while (ftpReader.Peek() != -1) { directoryRaw += ftpReader.ReadLine() + "|"; } }
-                catch (Exception ex) { Console.WriteLine(ex.ToString()); }
-                /* Resource Cleanup */
-                ftpReader.Close();
-                ftpStream.Close();
-                ftpResponse.Close();
-                ftpRequest = null;
+                catch (Exception ex)
+                {
+                    //Console.WriteLine(ex.ToString());
+                    throw;
+                }
+                finally
+                {
+                    /* Resource Cleanup */
+                    ftpReader.Close();
+                    ftpStream.Close();
+                    ftpResponse.Close();
+                    ftpRequest = null;
+                }
                 /* Return the Directory Listing as a string Array by Parsing 'directoryRaw' with the Delimiter you Append (I use | in This Example) */
                 try { string[] directoryList = directoryRaw.Split("|".ToCharArray()); return directoryList; }
-                catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+                catch (Exception ex)
+                {
+                    //Console.WriteLine(ex.ToString());
+                    throw;
+                }
             }
-            catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+            catch (Exception ex)
+            {
+                //Console.WriteLine(ex.ToString());
+                throw;
+            }
             /* Return an Empty string Array if an Exception Occurs */
-            return new string[] { "" };
+            //return new string[] { "" };
         }
     }
 }
