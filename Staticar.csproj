@@ -83,11 +83,11 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\..\Dropbox\Projects\miroz.com.hr\static-src\template-article.html">
-      <Link>template-article.html</Link>
-    </Content>
     <Content Include="..\miroz.com.hr\static-src\style\master.css">
       <Link>master.css</Link>
+    </Content>
+    <Content Include="..\miroz.com.hr\static-src\template-article.html">
+      <Link>template-article.html</Link>
     </Content>
     <Content Include="..\miroz.com.hr\static-src\template-index.html">
       <Link>template-index.html</Link>

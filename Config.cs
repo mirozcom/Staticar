@@ -14,7 +14,7 @@ namespace Staticar
         public static string ftpuser = null;
         public static string ftppass = null;
 
-        public static bool ToFTP = true;
+        public static bool ToFTP = false;
 
         internal static void ReadFromFile()
         {
