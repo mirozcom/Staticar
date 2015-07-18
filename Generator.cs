@@ -9,7 +9,7 @@ namespace Staticar
 {
     internal class Generator
     {
-        internal void Start()
+        internal void Generate()
         {
             var srcarticles = new List<ArticleData>();
 
@@ -49,11 +49,6 @@ namespace Staticar
             string destlistpath = Path.Combine(Config.destdir, "index.html");
             var indexContent = encloseInHtml(indexOfArticlesAsHtml.ToString(), "template-index");
             File.WriteAllText(destlistpath, indexContent);
-
-            if (Config.ToFTP)
-            {
-                copyToFtp();
-            }
         }
 
         private ArticleData ParseArticleData(string srcfile)
@@ -144,46 +139,6 @@ namespace Staticar
             if (olstarted) { ret.Add(new LineData(LineType.OlClose)); }
             if (ulstarted) { ret.Add(new LineData(LineType.UlClose)); }
             return ret.ToArray();
-        }
-
-        private void copyToFtp()
-        {
-            UploadState uploaded = null;
-            var stateFile = Path.Combine(Config.destdir, Config.statefile);
-            if (File.Exists(stateFile))
-            {
-                try
-                {
-                    uploaded = Util.Deserialize(stateFile) as UploadState;
-                }
-                catch { }
-            }
-            if (uploaded == null)
-            {
-                uploaded = new UploadState();
-            }
-
-            var changes = uploaded.GetChanges(Config.destdir);
-
-            var ftp = new FTP(Config.ftproot, Config.ftpuser, Config.ftppass);
-            foreach (var destdir in changes.Directories)
-            {
-                var ftpdir = destdir.Replace(Config.destdir, "").Trim('\\').Replace("\\", "/");
-                try
-                {
-                    ftp.createDirectory(ftpdir);
-                }
-                catch
-                {
-                    //ne brinemo ako to ne prođe
-                }
-            }
-            foreach (var destfile in changes.Files)
-            {
-                var ftppath = destfile.Replace(Config.destdir, "").Trim('\\').Replace("\\", "/");
-                ftp.Upload(destfile, ftppath);
-            }
-            Util.Serialize(uploaded, stateFile);
         }
 
         private void onlyCopy(string srcpath)

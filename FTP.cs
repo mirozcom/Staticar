@@ -58,7 +58,7 @@ namespace Staticar
                         bytesRead = ftpStream.Read(byteBuffer, 0, bufferSize);
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
                     //Console.WriteLine(ex.ToString());
                     throw;
@@ -72,7 +72,7 @@ namespace Staticar
                     ftpRequest = null;
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 //Console.WriteLine(ex.ToString());
                 throw;
@@ -167,7 +167,7 @@ namespace Staticar
                 ftpResponse.Close();
                 ftpRequest = null;
             }
-            catch (Exception ex)
+            catch
             {
                 //Console.WriteLine(ex.ToString());
                 throw;
@@ -199,7 +199,7 @@ namespace Staticar
                 ftpResponse.Close();
                 ftpRequest = null;
             }
-            catch (Exception ex)
+            catch
             {
                 //Console.WriteLine(ex.ToString());
                 throw;
@@ -229,7 +229,7 @@ namespace Staticar
                 ftpResponse.Close();
                 ftpRequest = null;
             }
-            catch (Exception ex)
+            catch
             {
                 //Console.WriteLine(ex.ToString());
                 throw;
@@ -263,7 +263,7 @@ namespace Staticar
                 string fileInfo = null;
                 /* Read the Full Response Stream */
                 try { fileInfo = ftpReader.ReadToEnd(); }
-                catch (Exception ex)
+                catch
                 {
                     //Console.WriteLine(ex.ToString());
                     throw;
@@ -279,7 +279,7 @@ namespace Staticar
                 /* Return File Created Date Time */
                 return fileInfo;
             }
-            catch (Exception ex)
+            catch
             {
                 //Console.WriteLine(ex.ToString());
                 throw;
@@ -314,7 +314,7 @@ namespace Staticar
                 string fileInfo = null;
                 /* Read the Full Response Stream */
                 try { while (ftpReader.Peek() != -1) { fileInfo = ftpReader.ReadToEnd(); } }
-                catch (Exception ex)
+                catch
                 {
                     //Console.WriteLine(ex.ToString());
                     throw;
@@ -330,7 +330,7 @@ namespace Staticar
                 /* Return File Size */
                 return fileInfo;
             }
-            catch (Exception ex)
+            catch
             {
                 //Console.WriteLine(ex.ToString());
                 throw;
@@ -365,7 +365,7 @@ namespace Staticar
                 string directoryRaw = null;
                 /* Read Each Line of the Response and Append a Pipe to Each Line for Easy Parsing */
                 try { while (ftpReader.Peek() != -1) { directoryRaw += ftpReader.ReadLine() + "|"; } }
-                catch (Exception ex)
+                catch
                 {
                     //Console.WriteLine(ex.ToString());
                     throw;
@@ -379,20 +379,24 @@ namespace Staticar
                     ftpRequest = null;
                 }
                 /* Return the Directory Listing as a string Array by Parsing 'directoryRaw' with the Delimiter you Append (I use | in This Example) */
-                try { string[] directoryList = directoryRaw.Split("|".ToCharArray()); return directoryList; }
-                catch (Exception ex)
+                try
+                {
+                    string[] directoryList = directoryRaw.Split("|".ToCharArray());
+                    return directoryList;
+                }
+                catch
                 {
                     //Console.WriteLine(ex.ToString());
                     throw;
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 //Console.WriteLine(ex.ToString());
                 throw;
             }
             /* Return an Empty string Array if an Exception Occurs */
-            return new string[] { "" };
+            //return new string[] { "" };
         }
 
         /* List Directory Contents in Detail (Name, Size, Created, etc.) */
@@ -421,7 +425,7 @@ namespace Staticar
                 string directoryRaw = null;
                 /* Read Each Line of the Response and Append a Pipe to Each Line for Easy Parsing */
                 try { while (ftpReader.Peek() != -1) { directoryRaw += ftpReader.ReadLine() + "|"; } }
-                catch (Exception ex)
+                catch
                 {
                     //Console.WriteLine(ex.ToString());
                     throw;
@@ -436,13 +440,13 @@ namespace Staticar
                 }
                 /* Return the Directory Listing as a string Array by Parsing 'directoryRaw' with the Delimiter you Append (I use | in This Example) */
                 try { string[] directoryList = directoryRaw.Split("|".ToCharArray()); return directoryList; }
-                catch (Exception ex)
+                catch
                 {
                     //Console.WriteLine(ex.ToString());
                     throw;
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 //Console.WriteLine(ex.ToString());
                 throw;
