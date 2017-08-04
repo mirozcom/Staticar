@@ -20,7 +20,10 @@ namespace Staticar
             {
                 if (Path.GetExtension(srcfile).Equals(".txt", StringComparison.CurrentCultureIgnoreCase))
                 {
-                    srcarticles.Add(ParseArticleData(srcfile));
+                    if (!Config.TEST_ONLY || Path.GetFileNameWithoutExtension(srcfile).StartsWith("testdata"))
+                    {
+                        srcarticles.Add(ParseArticleData(srcfile));
+                    }
                 }
                 else
                 {
@@ -39,16 +42,28 @@ namespace Staticar
             string indexPrefix = string.Empty;
             foreach (var article in srcarticles)
             {
-                indexOfArticlesAsHtml.AppendLine(indexPrefix + article.Content);
-                indexPrefix = "<hr class='separator'/>";
-
-                var destArticlePath = Path.Combine(Config.destdir, article.Slug + ".html");
+                if (!article.Stub)
+                {
+                    //add article to index page (if not stub)
+                    indexOfArticlesAsHtml.AppendLine(indexPrefix + article.Content);
+                    indexPrefix = "<hr class='separator'/>";
+                }
+                var dirOnly = Path.GetDirectoryName(article.Path);
+                var targetDir = dirOnly.Replace(Config.srcdir, Config.destdir);
+                if (!Directory.Exists(targetDir))
+                {
+                    Directory.CreateDirectory(targetDir);
+                }
+                var destArticlePath = Path.Combine(targetDir, article.Slug + ".html");
                 var articleAsHtml = encloseInHtml(article, "template-article");
                 File.WriteAllText(destArticlePath, articleAsHtml);
             }
-            string destlistpath = Path.Combine(Config.destdir, "index.html");
-            var indexContent = encloseInHtml(indexOfArticlesAsHtml.ToString(), "template-index");
-            File.WriteAllText(destlistpath, indexContent);
+            if (!Config.TEST_ONLY)
+            {
+                string destlistpath = Path.Combine(Config.destdir, "index.html");
+                var indexContent = encloseInHtml(indexOfArticlesAsHtml.ToString(), "template-index");
+                File.WriteAllText(destlistpath, indexContent);
+            }
         }
 
         private ArticleData ParseArticleData(string srcfile)
@@ -56,20 +71,25 @@ namespace Staticar
             var a = new ArticleData();
             a.Path = srcfile;
             a.Slug = Path.GetFileNameWithoutExtension(srcfile);
-            a.Created = File.GetCreationTime(srcfile);
-            a.Lines = ParseLineData(File.ReadAllLines(srcfile));
-            a.Content = convertToHtmlArticle(a);
+            a.Created = new DateTime[] { File.GetCreationTime(srcfile), File.GetLastWriteTime(srcfile) }.Min();
+            ParseLineData(a);
+            convertToHtmlArticle(a);
             return a;
         }
 
-        private LineData[] ParseLineData(string[] lines)
+        private void ParseLineData(ArticleData adata)
         {
+            var lines = File.ReadAllLines(adata.Path);
+
             var ret = new List<LineData>();
-            var h1regex = @"^#{1}.+$";
             var hregex = @"^#+.+$";
             var numberingRegex = @"^\d+\..*";
             var bulletingRegex = @"^[\*\-].*";
             var refRegex = @"^\[\d+?\].*";
+            var paramRegex = @"^\-\-(\w*)[\s\:]*(.*)$";
+            var stubKeyword = "stub";
+            var timestampKeyword = "ts";
+
             bool olstarted = false;
             bool ulstarted = false;
             for (int i = 0; i < lines.Length; i++)
@@ -77,6 +97,45 @@ namespace Staticar
                 var line = lines[i].Trim();
                 if (line.Trim() == string.Empty)
                 {
+                    continue;
+                }
+
+                var paramMatch = Regex.Match(line, paramRegex);
+                if (paramMatch.Success)
+                {
+                    if (paramMatch.Groups.Count > 1)
+                    {
+                        var val = paramMatch.Groups[1].Value.Trim();
+                        if (val.Equals(stubKeyword, StringComparison.CurrentCultureIgnoreCase))
+                        {
+                            adata.Stub = true;
+                        }
+                        else if (val.Equals(timestampKeyword, StringComparison.CurrentCultureIgnoreCase))
+                        {
+                            if (paramMatch.Groups.Count > 2)
+                            {
+                                var tsString= paramMatch.Groups[2].Value.Trim();
+                                DateTime timestamp;
+                                var success = DateTime.TryParseExact(tsString, "d.M.yyyy", System.Globalization.CultureInfo.CurrentCulture, System.Globalization.DateTimeStyles.None, out timestamp);
+                                if (!success)
+                                {
+                                    success = DateTime.TryParseExact(tsString, "d.M.yy", System.Globalization.CultureInfo.CurrentCulture, System.Globalization.DateTimeStyles.None, out timestamp);
+                                }
+                                if (!success)
+                                {
+                                    success = DateTime.TryParseExact(tsString, "yyyy-M-d", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out timestamp);
+                                }
+                                if (!success)
+                                {
+                                    success = DateTime.TryParseExact(tsString, "yy-M-d", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out timestamp);
+                                }
+                                if (success)
+                                {
+                                    adata.Created = timestamp;
+                                }
+                            }
+                        }
+                    }
                     continue;
                 }
                 if (olstarted && !Regex.IsMatch(line, numberingRegex))
@@ -89,13 +148,20 @@ namespace Staticar
                     ulstarted = false;
                     ret.Add(new LineData(LineType.UlClose));
                 }
-                if (Regex.IsMatch(line, h1regex))
+                if (Regex.IsMatch(line, hregex))
                 {
-                    ret.Add(new LineData(LineType.H1, line.Substring(1)));
-                }
-                else if (Regex.IsMatch(line, hregex))
-                {
-                    ret.Add(new LineData(LineType.H2, line.TrimStart('#')));
+                    var fullLen = line.Length;
+                    var trimmed = line.TrimStart(new char[] { '#' });
+                    var trimmedLen = trimmed.Length;
+                    LineType ltype;
+                    switch (fullLen - trimmedLen)
+                    {
+                        case 1: ltype = LineType.H1; break;
+                        case 2: ltype = LineType.H2; break;
+                        case 3: ltype = LineType.H3; break;
+                        default: ltype = LineType.H4; break;
+                    }
+                    ret.Add(new LineData(ltype, trimmed));
                 }
                 else if (Regex.IsMatch(line, numberingRegex))
                 {
@@ -138,7 +204,9 @@ namespace Staticar
             }
             if (olstarted) { ret.Add(new LineData(LineType.OlClose)); }
             if (ulstarted) { ret.Add(new LineData(LineType.UlClose)); }
-            return ret.ToArray();
+
+            adata.Lines = ret.ToArray();
+
         }
 
         private void onlyCopy(string srcpath)
@@ -152,7 +220,7 @@ namespace Staticar
             File.Copy(srcpath, destination, true);
         }
 
-        private string convertToHtmlArticle(ArticleData a)
+        private void convertToHtmlArticle(ArticleData a)
         {
             var reflines = a.Lines.Where(l => l.Type == LineType.Reference).ToArray();
             var sb = new StringBuilder();
@@ -175,7 +243,12 @@ namespace Staticar
                     case LineType.H2:
                         sb.AppendLine(string.Format("<h2>{0}</h2>", text));
                         break;
-
+                    case LineType.H3:
+                        sb.AppendLine(string.Format("<h3>{0}</h3>", text));
+                        break;
+                    case LineType.H4:
+                        sb.AppendLine(string.Format("<h4>{0}</h4>", text));
+                        break;
                     case LineType.Li:
                         sb.AppendLine(string.Format("<li>{0}</li>", text));
                         break;
@@ -213,7 +286,7 @@ namespace Staticar
             }
 
             sb.AppendLine("</article>");
-            return sb.ToString();
+            a.Content = sb.ToString();
         }
 
         private string markify(string text, LineData[] references)

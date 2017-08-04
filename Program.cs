@@ -24,9 +24,7 @@ namespace Staticar
                 {
                     Config.ToFTP = true;
                 }
-
-                //Config.ToFTP = true;
-
+                if (Config.TEST_ONLY) { Config.ToFTP = false; }
                 var gen = new Generator();
                 gen.Generate();
 

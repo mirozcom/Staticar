@@ -92,6 +92,7 @@
     <Content Include="..\miroz.com.hr\static-src\template-index.html">
       <Link>template-index.html</Link>
     </Content>
+    <Content Include="doc.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
