@@ -36,7 +36,9 @@ namespace Staticar
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex.ToString());
                 MessageBox.Show(ex.Message);
+
             }
         }
     }

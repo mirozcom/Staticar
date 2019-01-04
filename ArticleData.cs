@@ -10,11 +10,13 @@ namespace Staticar
 
         public DateTime Created { get; set; }
 
-        public LineData[] Lines { get; set; }
+        //public LineData[] Lines { get; set; }            
 
         public string Slug { get; set; }
 
-        public string Content { get; set; }
+        public string SourceContent { get; set; }
+
+        public string HtmlContent { get; set; }
 
         public string Title { get; set; }
 
